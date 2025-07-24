@@ -8,16 +8,16 @@ Usage: ./markdown2html.py README.md README.html
 """
 
 import sys
-
+import re
 
 def convert_heading(line):
     """Convert Markdown headings (#) to HTML <h1> to <h6>."""
-    if line.startswith("#"):
-        level = line.count("#")
-        text = line.strip("# ").strip()
+    match = re.match(r'^(#{1,6})\s+(.*)', line)
+    if match:
+        level = len(match.group(1))
+        text = match.group(2).strip()
         return f"<h{level}>{text}</h{level}>"
     return None
-
 
 def markdown_file(input_file, output_file):
     try:
@@ -30,14 +30,14 @@ def markdown_file(input_file, output_file):
         for line in lines:
             stripped = line.strip()
 
-            # Skip blank lines but close list if needed
+            # Handle blank line
             if not stripped:
                 if in_list:
                     output_lines.append("</ul>")
                     in_list = False
                 continue
 
-            # ✅ Match list item: * item or - item
+            # Handle list item
             if stripped.startswith("* ") or stripped.startswith("- "):
                 if not in_list:
                     output_lines.append("<ul>")
@@ -45,19 +45,20 @@ def markdown_file(input_file, output_file):
                 output_lines.append(f"<li>{stripped[2:].strip()}</li>")
                 continue
 
-            # ✅ Close list if a normal line follows
+            # Close list if line is not a list item
             if in_list:
                 output_lines.append("</ul>")
                 in_list = False
 
-            # ✅ Check for heading
+            # Handle heading
             heading = convert_heading(stripped)
             if heading:
                 output_lines.append(heading)
             else:
-                output_lines.append(stripped)
+                # Treat remaining text as paragraph
+                output_lines.append(f"<p>{stripped}</p>")
 
-        # ✅ Close list at end of file if needed
+        # Close list at end of file
         if in_list:
             output_lines.append("</ul>")
 
