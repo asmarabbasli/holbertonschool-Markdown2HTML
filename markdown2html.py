@@ -31,32 +31,35 @@ def markdown_file(name, output):
         for line in markdown_lines:
             stripped = line.strip()
 
+            # Skip empty lines but close list if needed
             if not stripped:
                 if in_list:
                     converted_lines.append("</ul>")
                     in_list = False
                 continue
 
-            # ✅ Match both - and * list markers
-            if stripped.startswith("- ") or stripped.startswith("* "):
+            # ✅ FIRST: Handle unordered list items (* or -)
+            if stripped.startswith("* ") or stripped.startswith("- "):
                 if not in_list:
                     converted_lines.append("<ul>")
                     in_list = True
                 item = stripped[2:].strip()
                 converted_lines.append(f"<li>{item}</li>")
-            else:
-                if in_list:
-                    converted_lines.append("</ul>")
-                    in_list = False
+                continue
 
-                heading = convert_heading(stripped)
-                if heading:
-                    converted_lines.append(heading)
-                else:
-                    converted_lines.append(stripped)
+            # ✅ THEN: Handle headings
+            if in_list:
+                converted_lines.append("</ul>")
+                in_list = False
+
+            heading = convert_heading(stripped)
+            if heading:
+                converted_lines.append(heading)
+            else:
+                converted_lines.append(stripped)
 
         if in_list:
-            converted_lines.append("</ul>")  # Close final list
+            converted_lines.append("</ul>")
 
         with open(output, 'w') as file:
             for line in converted_lines:
