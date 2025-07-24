@@ -1,52 +1,66 @@
-'''#!/usr/bin/env python3
-"""Script to validate markdown to HTML conversion arguments"""
+#!/usr/bin/python3
+
+"""
+markdown2html.py
+
+A simple Markdown to HTML converter.
+
+Usage:
+    ./markdown2html.py README.md README.html
+"""
 
 import sys
-import os
 
-if len(sys.argv) != 3:
-    print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
-    exit(1)
+def convert_unordered_list(line,in_list):
+    
+    ul_line = ""
+    if line.startswith("-") :
+        unordered_list = line.strip("-")
+        if not in_list :
+            ul_line+="<ul>\n"
+            in_list = True
+        ul_line+=f"\t<li>{unordered_list.strip()}</li>\n"
+        return ul_line
+    else :
+        ul_line+="</ul>\n"
+        in_list = False
 
-input_file = sys.argv[1]
+    return line
 
-if not os.path.isfile(input_file):
-    print(f"Missing {input_file}", file=sys.stderr)
-    exit(1)
 
-# If we get here, everything is fine
-exit(0)
-'''
-#!/usr/bin/env python3
-"""Converts Markdown headings to HTML"""
+def convert_heading(line):
+    if line.startswith("#"):
+        heading_level = line.count("#")
+        heading_text = line.strip("# ").strip()
+        heading = f"<h{heading_level}>{heading_text}</h{heading_level}>"
+        return heading
+    return line
 
-import sys
-import os
 
-if len(sys.argv) != 3:
-    print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
-    exit(1)
+def markdown_file(name, output):
+    try:
+        with open(name, 'r') as file:
+            markdown_lines = file.readlines()
 
-input_file = sys.argv[1]
-output_file = sys.argv[2]
+        converted_lines = []
+        in_list = False
+        for line in markdown_lines:
+            converted_line = convert_heading(line)
+            converted_line = convert_unordered_list(converted_line,in_list)
+            converted_lines.append(f"{converted_line}\n")
 
-if not os.path.isfile(input_file):
-    print(f"Missing {input_file}", file=sys.stderr)
-    exit(1)
+        with open(output, 'w') as file:
+            for line in converted_lines:
+                file.write(line)
 
-try:
-    with open(input_file, 'r') as md_file, open(output_file, 'w') as html_file:
-        for line in md_file:
-            stripped = line.strip()
-            if stripped.startswith('#'):
-                i = 0
-                while i < len(stripped) and stripped[i] == '#':
-                    i += 1
-                if 1 <= i <= 6 and stripped[i] == ' ':
-                    content = stripped[i+1:].strip()
-                    html_file.write(f"<h{i}>{content}</h{i}>\n")
-except Exception as e:
-    print(f"Error: {e}", file=sys.stderr)
-    exit(1)
+    except FileNotFoundError:
+        sys.stderr.write(f"Missing {name}\n")
+        sys.exit(1)
 
-exit(0)
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        sys.stderr.write("Usage: ./markdown2html.py README.md README.html\n")
+        sys.exit(1)
+
+    markdown_file(sys.argv[1], sys.argv[2])
