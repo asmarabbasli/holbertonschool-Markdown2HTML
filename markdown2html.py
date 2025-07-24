@@ -8,15 +8,29 @@ Usage: ./markdown2html.py README.md README.html
 """
 
 import sys
+import os
 
 
 def convert_heading(line):
-    """Convert Markdown headings (#) to HTML <h1> to <h6>."""
     if line.startswith("#"):
-        level = line.count("#")
-        text = line.strip("# ").strip()
+        level = len(line) - len(line.lstrip('#'))
+        text = line.strip('#').strip()
         return f"<h{level}>{text}</h{level}>"
     return None
+
+
+def convert_unordered_list(line, in_list):
+    if line.strip().startswith(("-", "*")):
+        if not in_list:
+            start = "<ul>\n"
+        else:
+            start = ""
+        item = line.strip()[1:].strip()
+        return start + f"<li>{item}</li>\n", True
+    else:
+        if in_list:
+            return "</ul>\n" + line, False
+        return line, False
 
 
 def markdown_file(input_file, output_file):
@@ -28,42 +42,24 @@ def markdown_file(input_file, output_file):
         in_list = False
 
         for line in lines:
-            stripped = line.strip()
-
-            # Skip blank lines but close list if needed
-            if not stripped:
-                if in_list:
-                    output_lines.append("</ul>")
-                    in_list = False
+            if line.strip() == "":
                 continue
 
-            # ✅ Match list item: * item or - item
-            if stripped.startswith("* ") or stripped.startswith("- "):
-                if not in_list:
-                    output_lines.append("<ul>")
-                    in_list = True
-                output_lines.append(f"<li>{stripped[2:].strip()}</li>")
-                continue
-
-            # ✅ Close list if a normal line follows
-            if in_list:
-                output_lines.append("</ul>")
-                in_list = False
-
-            # ✅ Check for heading
-            heading = convert_heading(stripped)
+            heading = convert_heading(line)
             if heading:
-                output_lines.append(heading)
+                if in_list:
+                    output_lines.append("</ul>\n")
+                    in_list = False
+                output_lines.append(heading + "\n")
             else:
-                output_lines.append(stripped)
+                ul_line, in_list = convert_unordered_list(line, in_list)
+                output_lines.append(ul_line)
 
-        # ✅ Close list at end of file if needed
         if in_list:
-            output_lines.append("</ul>")
+            output_lines.append("</ul>\n")
 
         with open(output_file, 'w') as f:
-            for line in output_lines:
-                f.write(f"{line}\n")
+            f.writelines(output_lines)
 
     except FileNotFoundError:
         sys.stderr.write(f"Missing {input_file}\n")
