@@ -10,13 +10,13 @@ Usage: ./markdown2html.py README.md README.html
 
 import sys
 
-def convert_unordered_list(line,in_list):
+def convert_unordered_list(line, in_list):
     
     ul_line = ""
-    if line.startswith("-") :
+    if line.startswith("-"):
         unordered_list = line.strip("-")
         if not in_list :
-            ul_line+="<ul>\n"
+            ul_line = ul_line + "<ul>\n"
             in_list = True
         ul_line+=f"\t<li>{unordered_list.strip()}</li>\n"
         return ul_line
@@ -45,7 +45,7 @@ def markdown_file(name, output):
         in_list = False
         for line in markdown_lines:
             converted_line = convert_heading(line)
-            converted_line = convert_unordered_list(converted_line,in_list)
+            converted_line = convert_unordered_list(converted_line, in_list)
             converted_lines.append(f"{converted_line}\n")
 
         with open(output, 'w') as file:
