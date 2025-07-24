@@ -19,10 +19,10 @@ def convert_unordered_list(line, in_list):
         if not in_list:
             ul_line = ul_line + "<ul>\n"
             in_list = True
-        ul_line+=f"\t<li>{unordered_list.strip()}</li>\n"
+        ul_line += f"\t<li>{unordered_list.strip()}</li>\n"
         return ul_line
     else:
-        ul_line+="</ul>\n"
+        ul_line += "</ul>\n"
         in_list = False
 
     return line
@@ -64,4 +64,3 @@ if __name__ == '__main__':
         sys.exit(1)
 
     markdown_file(sys.argv[1], sys.argv[2])
-    
