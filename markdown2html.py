@@ -1,81 +1,99 @@
 #!/usr/bin/python3
 """
-markdown2html.py
+markdown2html.py - Convert Markdown to HTML
 
-A simple Markdown to HTML converter.
+This script reads a Markdown file and outputs its HTML representation.
+Supports headings and both unordered (-) and ordered (*) lists.
 
-Usage: ./markdown2html.py README.md README.html
+Usage:
+    ./markdown2html.py input.md output.html
 """
 
 import sys
-import re
+import os
 
 
-def convert_heading(line):
-    """Convert Markdown headings (#) to HTML <h1> to <h6>."""
-    match = re.match(r'^(#{1,6})\s+(.*)', line)
-    if match:
-        level = len(match.group(1))
-        text = match.group(2).strip()
-        return f"<h{level}>{text}</h{level}>"
-    return None
+def convert_markdown_to_html(input_path, output_path):
+    with open(input_path, 'r') as md_file:
+        lines = md_file.readlines()
 
-
-def markdown_file(input_file, output_file):
-    try:
-        with open(input_file, 'r') as f:
-            lines = f.readlines()
-
-        output_lines = []
-        in_list = False
+    with open(output_path, 'w') as html_file:
+        in_ul = False
+        in_ol = False
 
         for line in lines:
-            stripped = line.strip()
+            line = line.rstrip()
 
-            # Handle blank line
-            if not stripped:
-                if in_list:
-                    output_lines.append("</ul>")
-                    in_list = False
+            if not line:
+                if in_ul:
+                    html_file.write("</ul>\n")
+                    in_ul = False
+                if in_ol:
+                    html_file.write("</ol>\n")
+                    in_ol = False
                 continue
 
-            # Handle list item
-            if stripped.startswith("* ") or stripped.startswith("- "):
-                if not in_list:
-                    output_lines.append("<ul>")
-                    in_list = True
-                output_lines.append(f"<li>{stripped[2:].strip()}</li>")
+            # Unordered list item (- )
+            if line.startswith("- "):
+                if not in_ul:
+                    if in_ol:
+                        html_file.write("</ol>\n")
+                        in_ol = False
+                    html_file.write("<ul>\n")
+                    in_ul = True
+                html_file.write(f"<li>{line[2:].strip()}</li>\n")
                 continue
 
-            # Close list if line is not a list item
-            if in_list:
-                output_lines.append("</ul>")
-                in_list = False
+            # Ordered list item (* )
+            if line.startswith("* "):
+                if not in_ol:
+                    if in_ul:
+                        html_file.write("</ul>\n")
+                        in_ul = False
+                    html_file.write("<ol>\n")
+                    in_ol = True
+                html_file.write(f"<li>{line[2:].strip()}</li>\n")
+                continue
 
-            # Handle heading
-            heading = convert_heading(stripped)
-            if heading:
-                output_lines.append(heading)
-            else:
-                # Treat remaining text as paragraph
-                output_lines.append(f"<p>{stripped}</p>")
+            # If not list, close any open list
+            if in_ul:
+                html_file.write("</ul>\n")
+                in_ul = False
+            if in_ol:
+                html_file.write("</ol>\n")
+                in_ol = False
 
-        # Close list at end of file
-        if in_list:
-            output_lines.append("</ul>")
+            # Headers (# up to ######)
+            if line.startswith("#"):
+                count = 0
+                while count < len(line) and line[count] == "#":
+                    count += 1
+                if 1 <= count <= 6 and line[count] == ' ':
+                    content = line[count + 1:].strip()
+                    html_file.write(f"<h{count}>{content}</h{count}>\n")
 
-        with open(output_file, 'w') as f:
-            for line in output_lines:
-                f.write(f"{line}\n")
-
-    except FileNotFoundError:
-        sys.stderr.write(f"Missing {input_file}\n")
-        sys.exit(1)
+        # Final cleanup (if list still open at end of file)
+        if in_ul:
+            html_file.write("</ul>\n")
+        if in_ol:
+            html_file.write("</ol>\n")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) < 3:
         sys.stderr.write("Usage: ./markdown2html.py README.md README.html\n")
         sys.exit(1)
 
-    markdown_file(sys.argv[1], sys.argv[2])
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+
+    if not os.path.isfile(input_file):
+        sys.stderr.write(f"Missing {input_file}\n")
+        sys.exit(1)
+
+    try:
+        convert_markdown_to_html(input_file, output_file)
+        sys.exit(0)
+    except Exception as e:
+        sys.stderr.write(f"Error: {e}\n")
+        sys.exit(1)
