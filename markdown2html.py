@@ -11,66 +11,66 @@ import sys
 
 
 def convert_heading(line):
-    """Convert Markdown headings (#) to HTML <h1>-<h6>."""
+    """Convert Markdown headings (#) to HTML <h1> to <h6>."""
     if line.startswith("#"):
-        heading_level = line.count("#")
-        heading_text = line.strip("# ").strip()
-        return f"<h{heading_level}>{heading_text}</h{heading_level}>"
+        level = line.count("#")
+        text = line.strip("# ").strip()
+        return f"<h{level}>{text}</h{level}>"
     return None
 
 
-def markdown_file(name, output):
-    """Convert Markdown file to HTML file."""
+def markdown_file(input_file, output_file):
     try:
-        with open(name, 'r') as file:
-            markdown_lines = file.readlines()
+        with open(input_file, 'r') as f:
+            lines = f.readlines()
 
-        converted_lines = []
+        output_lines = []
         in_list = False
 
-        for line in markdown_lines:
+        for line in lines:
             stripped = line.strip()
 
-            # Skip empty lines but close list if needed
+            # Skip blank lines but close list if needed
             if not stripped:
                 if in_list:
-                    converted_lines.append("</ul>")
+                    output_lines.append("</ul>")
                     in_list = False
                 continue
 
-            # ✅ FIRST: Handle unordered list items (* or -)
+            # ✅ Match list item: * item or - item
             if stripped.startswith("* ") or stripped.startswith("- "):
                 if not in_list:
-                    converted_lines.append("<ul>")
+                    output_lines.append("<ul>")
                     in_list = True
-                item = stripped[2:].strip()
-                converted_lines.append(f"<li>{item}</li>")
+                output_lines.append(f"<li>{stripped[2:].strip()}</li>")
                 continue
 
-            # ✅ THEN: Handle headings
+            # ✅ Close list if a normal line follows
             if in_list:
-                converted_lines.append("</ul>")
+                output_lines.append("</ul>")
                 in_list = False
 
+            # ✅ Check for heading
             heading = convert_heading(stripped)
             if heading:
-                converted_lines.append(heading)
+                output_lines.append(heading)
             else:
-                converted_lines.append(stripped)
+                output_lines.append(stripped)
 
+        # ✅ Close list at end of file if needed
         if in_list:
-            converted_lines.append("</ul>")
+            output_lines.append("</ul>")
 
-        with open(output, 'w') as file:
-            for line in converted_lines:
-                file.write(f"{line}\n")
+        with open(output_file, 'w') as f:
+            for line in output_lines:
+                f.write(f"{line}\n")
 
     except FileNotFoundError:
-        sys.stderr.write(f"Missing {name}\n")
+        sys.stderr.write(f"Missing {input_file}\n")
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 3:
         sys.stderr.write("Usage: ./markdown2html.py README.md README.html\n")
         sys.exit(1)
