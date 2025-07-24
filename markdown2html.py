@@ -5,8 +5,7 @@ markdown2html.py
 
 A simple Markdown to HTML converter.
 
-Usage:
-    ./markdown2html.py README.md README.html
+Usage: ./markdown2html.py README.md README.html
 """
 
 import sys
