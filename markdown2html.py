@@ -12,7 +12,7 @@ import re
 
 
 def convert_heading(line):
-    """Convert Markdown headings (# to ######) to HTML <h1> to <h6>."""
+    """Convert Markdown headings (#) to HTML <h1> to <h6>."""
     match = re.match(r'^(#{1,6})\s+(.*)', line)
     if match:
         level = len(match.group(1))
@@ -27,94 +27,42 @@ def markdown_file(input_file, output_file):
             lines = f.readlines()
 
         output_lines = []
-        in_ul = False
-        in_ol = False
-        in_paragraph = False
+        in_list = False
 
         for line in lines:
             stripped = line.strip()
 
-            # Blank line: close any open tags (paragraph, lists)
+            # Handle blank line
             if not stripped:
-                if in_paragraph:
-                    output_lines.append("</p>")
-                    in_paragraph = False
-                if in_ul:
+                if in_list:
                     output_lines.append("</ul>")
-                    in_ul = False
-                if in_ol:
-                    output_lines.append("</ol>")
-                    in_ol = False
+                    in_list = False
                 continue
 
-            # Check for heading
-            heading = convert_heading(stripped)
-            if heading:
-                # Close any open tags before heading
-                if in_paragraph:
-                    output_lines.append("</p>")
-                    in_paragraph = False
-                if in_ul:
-                    output_lines.append("</ul>")
-                    in_ul = False
-                if in_ol:
-                    output_lines.append("</ol>")
-                    in_ol = False
-
-                output_lines.append(heading)
-                continue
-
-            # Ordered list detection (e.g. 1. item)
-            ol_match = re.match(r'^(\d+)\.\s+(.*)', stripped)
-            if ol_match:
-                if in_paragraph:
-                    output_lines.append("</p>")
-                    in_paragraph = False
-                if in_ul:
-                    output_lines.append("</ul>")
-                    in_ul = False
-                if not in_ol:
-                    output_lines.append("<ol>")
-                    in_ol = True
-                output_lines.append(f"<li>{ol_match.group(2)}</li>")
-                continue
-
-            # Unordered list detection (e.g. * item or - item)
+            # Handle list item
             if stripped.startswith("* ") or stripped.startswith("- "):
-                if in_paragraph:
-                    output_lines.append("</p>")
-                    in_paragraph = False
-                if in_ol:
-                    output_lines.append("</ol>")
-                    in_ol = False
-                if not in_ul:
+                if not in_list:
                     output_lines.append("<ul>")
-                    in_ul = True
+                    in_list = True
                 output_lines.append(f"<li>{stripped[2:].strip()}</li>")
                 continue
 
-            # Otherwise, normal paragraph text
-            if not in_paragraph:
-                # Close any open lists before starting paragraph
-                if in_ul:
-                    output_lines.append("</ul>")
-                    in_ul = False
-                if in_ol:
-                    output_lines.append("</ol>")
-                    in_ol = False
-                output_lines.append(f"<p>{stripped}")
-                in_paragraph = True
-            else:
-                # Continue paragraph on new line with a space
-                output_lines[-1] = output_lines[-1] + ' ' + stripped
+            # Close list if line is not a list item
+            if in_list:
+                output_lines.append("</ul>")
+                in_list = False
 
-        # Close any open tags at the end of the file
-        if in_paragraph:
-            output_lines.append("</p>")
-        if in_ul:
+            # Handle heading
+            heading = convert_heading(stripped)
+            if heading:
+                output_lines.append(heading)
+            else:
+                # Treat remaining text as paragraph
+                output_lines.append(f"<p>{stripped}</p>")
+
+        # Close list at end of file
+        if in_list:
             output_lines.append("</ul>")
-        if in_ol:
-            output_lines.append("</ol>")
 
         with open(output_file, 'w') as f:
             for line in output_lines:
