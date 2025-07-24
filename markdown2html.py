@@ -10,6 +10,7 @@ Usage: ./markdown2html.py README.md README.html
 import sys
 import re
 
+
 def convert_heading(line):
     """Convert Markdown headings (#) to HTML <h1> to <h6>."""
     match = re.match(r'^(#{1,6})\s+(.*)', line)
@@ -18,6 +19,7 @@ def convert_heading(line):
         text = match.group(2).strip()
         return f"<h{level}>{text}</h{level}>"
     return None
+
 
 def markdown_file(input_file, output_file):
     try:
