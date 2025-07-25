@@ -12,6 +12,7 @@ Usage: ./markdown2html.py README.md README.html
 import sys
 import re
 
+
 def parse_inline_formatting(text):
     # Bold (**text**)
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
@@ -19,18 +20,19 @@ def parse_inline_formatting(text):
     text = re.sub(r'__(.*?)__', r'<em>\1</em>', text)
     return text
 
+
 def convert_heading(line):
     match = re.match(r'^(#{1,6})\s+(.*)', line)
     if match:
         level = len(match.group(1))
         text = parse_inline_formatting(match.group(2).strip())
         return f"<h{level}>{text}</h{level}>"
-    return None
+    return None 
 
 def is_ordered_list_item(line):
     return re.match(r'^\s*\*\s+.+', line)
 
-def is_unordered_list_item(line):
+def is_unordered_list_item(line): 
     return re.match(r'^\s*-\s+.+', line)
 
 def markdown_file(input_file, output_file):
@@ -122,7 +124,8 @@ def markdown_file(input_file, output_file):
 
     except FileNotFoundError:
         sys.stderr.write(f"Missing {input_file}\n")
-        sys.exit(1)
+        sys.exit(1) 
+        
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
