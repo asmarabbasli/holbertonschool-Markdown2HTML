@@ -2,22 +2,45 @@
 """
 markdown2html.py
 
-Markdown to HTML converter with support for headings,
-paragraphs, ordered lists (*), unordered lists (-),
-bold (**text**) and emphasis (__text__).
+Markdown to HTML converter with support for:
+- headings (#)
+- paragraphs
+- ordered lists (*)
+- unordered lists (-)
+- bold (**text**)
+- emphasis (__text__)
+- MD5 hashing with [[text]]
+- 'c' removal with ((text))
 
 Usage: ./markdown2html.py README.md README.html
 """
 
 import sys
 import re
+import hashlib
 
 
 def parse(text):
+    # Handle [[...]] => MD5 hash of content (lowercase)
+    def md5_replace(match):
+        content = match.group(1)
+        return hashlib.md5(content.encode('utf-8')).hexdigest()
+
+    text = re.sub(r'\[\[(.*?)\]\]', md5_replace, text)
+
+    # Handle ((...)) => remove all 'c' and 'C'
+    def remove_c(match):
+        content = match.group(1)
+        return re.sub(r'[cC]', '', content)
+
+    text = re.sub(r'\(\((.*?)\)\)', remove_c, text)
+
     # Bold (**text**)
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+
     # Emphasis (__text__)
     text = re.sub(r'__(.*?)__', r'<em>\1</em>', text)
+
     return text
 
 
