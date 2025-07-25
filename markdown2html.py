@@ -37,12 +37,24 @@ def markdown_file(input_file, output_file):
         output_lines = []
         in_ordered_list = False
         in_unordered_list = False
+        paragraph_buffer = []
+
+        def flush_paragraph():
+            if paragraph_buffer:
+                output_lines.append("<p>")
+                for i, line in enumerate(paragraph_buffer):
+                    if i > 0:
+                        output_lines.append("<br/>")
+                    output_lines.append(line)
+                output_lines.append("</p>")
+                paragraph_buffer.clear()
 
         for line in lines:
             stripped = line.strip()
 
             # Close lists on blank lines
             if not stripped:
+                flush_paragraph()
                 if in_ordered_list:
                     output_lines.append("</ol>")
                     in_ordered_list = False
@@ -51,8 +63,22 @@ def markdown_file(input_file, output_file):
                     in_unordered_list = False
                 continue
 
+            # Headings
+            heading = convert_heading(stripped)
+            if heading:
+                flush_paragraph()
+                if in_ordered_list:
+                    output_lines.append("</ol>")
+                    in_ordered_list = False
+                if in_unordered_list:
+                    output_lines.append("</ul>")
+                    in_unordered_list = False
+                output_lines.append(heading)
+                continue
+
             # Ordered list item (*)
             if is_ordered_list_item(line):
+                flush_paragraph()
                 if not in_ordered_list:
                     if in_unordered_list:
                         output_lines.append("</ul>")
@@ -65,6 +91,7 @@ def markdown_file(input_file, output_file):
 
             # Unordered list item (-)
             if is_unordered_list_item(line):
+                flush_paragraph()
                 if not in_unordered_list:
                     if in_ordered_list:
                         output_lines.append("</ol>")
@@ -75,22 +102,11 @@ def markdown_file(input_file, output_file):
                 output_lines.append(f"<li>{item}</li>")
                 continue
 
-            # Close any open list before non-list content
-            if in_ordered_list:
-                output_lines.append("</ol>")
-                in_ordered_list = False
-            if in_unordered_list:
-                output_lines.append("</ul>")
-                in_unordered_list = False
+            # Collect for paragraph
+            paragraph_buffer.append(stripped)
 
-            # Headings
-            heading = convert_heading(stripped)
-            if heading:
-                output_lines.append(heading)
-            else:
-                output_lines.append(f"<p>{stripped}</p>")
-
-        # Final cleanup: close any open lists
+        # Final flush
+        flush_paragraph()
         if in_ordered_list:
             output_lines.append("</ol>")
         if in_unordered_list:
