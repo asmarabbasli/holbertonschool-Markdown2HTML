@@ -21,11 +21,6 @@ def convert_heading(line):
     return None
 
 
-def is_list_item(line):
-    """Check if the line is a Markdown list item."""
-    return re.match(r'^\s*[-*]\s+.+', line)
-
-
 def markdown_file(input_file, output_file):
     try:
         with open(input_file, 'r') as f:
@@ -37,40 +32,41 @@ def markdown_file(input_file, output_file):
         for line in lines:
             stripped = line.strip()
 
-            # Handle blank lines
+            # Handle blank line
             if not stripped:
                 if in_list:
                     output_lines.append("</ul>")
                     in_list = False
                 continue
 
-            # Handle list items
-            if is_list_item(line):
+            # Handle list item
+            if stripped.startswith("* ") or stripped.startswith("- "):
                 if not in_list:
                     output_lines.append("<ul>")
                     in_list = True
-                item_text = re.sub(r'^\s*[-*]\s+', '', line).strip()
-                output_lines.append(f"<li>{item_text}</li>")
+                output_lines.append(f"<li>{stripped[2:].strip()}</li>")
                 continue
 
-            # Close list if we're no longer in one
+            # Close list if line is not a list item
             if in_list:
                 output_lines.append("</ul>")
                 in_list = False
 
-            # Handle headings
+            # Handle heading
             heading = convert_heading(stripped)
             if heading:
                 output_lines.append(heading)
             else:
+                # Treat remaining text as paragraph
                 output_lines.append(f"<p>{stripped}</p>")
 
-        # Close any list left open at the end of file
+        # Close list at end of file
         if in_list:
             output_lines.append("</ul>")
 
         with open(output_file, 'w') as f:
-            f.write("\n".join(output_lines) + "\n")
+            for line in output_lines:
+                f.write(f"{line}\n")
 
     except FileNotFoundError:
         sys.stderr.write(f"Missing {input_file}\n")
