@@ -2,7 +2,8 @@
 """
 markdown2html.py
 
-A simple Markdown to HTML converter.
+Markdown to HTML converter with support for headings, paragraphs, 
+ordered lists (*), and unordered lists (-).
 
 Usage: ./markdown2html.py README.md README.html
 """
@@ -22,8 +23,11 @@ def convert_heading(line):
 
 
 def is_ordered_list_item(line):
-    """Check if the line matches a strict ordered list item: starts with '*' followed by space."""
-    return re.match(r'^\* .+', line)
+    return re.match(r'^\s*\*\s+.+', line)
+
+
+def is_unordered_list_item(line):
+    return re.match(r'^\s*-\s+.+', line)
 
 
 def markdown_file(input_file, output_file):
@@ -33,40 +37,65 @@ def markdown_file(input_file, output_file):
 
         output_lines = []
         in_ordered_list = False
+        in_unordered_list = False
 
         for line in lines:
             stripped = line.strip()
 
-            # Blank line closes list
+            # Blank line closes any open list
             if not stripped:
                 if in_ordered_list:
                     output_lines.append("</ol>")
                     in_ordered_list = False
+                if in_unordered_list:
+                    output_lines.append("</ul>")
+                    in_unordered_list = False
                 continue
 
-            # Ordered list item
-            if is_ordered_list_item(stripped):
+            # Ordered list item (*)
+            if is_ordered_list_item(line):
                 if not in_ordered_list:
+                    if in_unordered_list:
+                        output_lines.append("</ul>")
+                        in_unordered_list = False
                     output_lines.append("<ol>")
                     in_ordered_list = True
-                output_lines.append(f"<li>{stripped[2:].strip()}</li>")
+                item = re.sub(r'^\s*\*\s+', '', line).strip()
+                output_lines.append(f"<li>{item}</li>")
                 continue
 
-            # Close list if current line is not a list item
+            # Unordered list item (-)
+            if is_unordered_list_item(line):
+                if not in_unordered_list:
+                    if in_ordered_list:
+                        output_lines.append("</ol>")
+                        in_ordered_list = False
+                    output_lines.append("<ul>")
+                    in_unordered_list = True
+                item = re.sub(r'^\s*-\s+', '', line).strip()
+                output_lines.append(f"<li>{item}</li>")
+                continue
+
+            # Close any open list before paragraph/heading
             if in_ordered_list:
                 output_lines.append("</ol>")
                 in_ordered_list = False
+            if in_unordered_list:
+                output_lines.append("</ul>")
+                in_unordered_list = False
 
-            # Heading
+            # Headings
             heading = convert_heading(stripped)
             if heading:
                 output_lines.append(heading)
             else:
                 output_lines.append(f"<p>{stripped}</p>")
 
-        # Close ordered list at end if needed
+        # Close lists if still open
         if in_ordered_list:
             output_lines.append("</ol>")
+        if in_unordered_list:
+            output_lines.append("</ul>")
 
         with open(output_file, 'w') as f:
             f.write("\n".join(output_lines) + "\n")
