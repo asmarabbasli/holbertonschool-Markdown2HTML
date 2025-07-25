@@ -2,22 +2,45 @@
 """
 markdown2html.py
 
-Markdown to HTML converter with support for headings,
-paragraphs, ordered lists (*), unordered lists (-),
-bold (**text**) and emphasis (__text__).
+Markdown to HTML converter with support for:
+- Headings (#)
+- Ordered lists (*)
+- Unordered lists (-)
+- Multiline paragraphs with <br/>
+- Bold (**text**)
+- Emphasis (__text__)
+- [[text]] → MD5 hash
+- ((text)) → remove all 'c' and 'C'
 
 Usage: ./markdown2html.py README.md README.html
 """
 
 import sys
 import re
+import hashlib
 
 
 def parse(text):
-    # Bold (**text**)
+    # MD5 conversion: [[text]]
+    text = re.sub(r'
+
+\[
+
+\[(.*?)\]
+
+\]
+
+', lambda m: hashlib.md5(m.group(1).encode()).hexdigest(), text)
+
+    # Remove 'c' and 'C': ((text))
+    text = re.sub(r'\(\((.*?)\)\)', lambda m: re.sub(r'[cC]', '', m.group(1)), text)
+
+    # Bold: **text**
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-    # Emphasis (__text__)
+
+    # Emphasis: __text__
     text = re.sub(r'__(.*?)__', r'<em>\1</em>', text)
+
     return text
 
 
@@ -25,8 +48,7 @@ def convert_heading(line):
     match = re.match(r'^(#{1,6})\s+(.*)', line)
     if match:
         level = len(match.group(1))
-        text = parse(match.group(2).strip())
-        return f"<h{level}>{text}</h{level}>"
+        return f"<h{level}>{parse(match.group(2).strip())}</h{level}>"
     return None
 
 
@@ -52,17 +74,16 @@ def markdown_file(input_file, output_file):
             if paragraph_buffer:
                 output_lines.append("<p>")
                 for i, line in enumerate(paragraph_buffer):
-                    formatted = parse(line)
+                    content = parse(line.strip())
                     if i > 0:
                         output_lines.append("<br/>")
-                    output_lines.append(formatted)
+                    output_lines.append(content)
                 output_lines.append("</p>")
                 paragraph_buffer.clear()
 
         for line in lines:
             stripped = line.strip()
 
-            # Blank line: flush and close any lists
             if not stripped:
                 flush_paragraph()
                 if in_ordered_list:
@@ -73,7 +94,6 @@ def markdown_file(input_file, output_file):
                     in_unordered_list = False
                 continue
 
-            # Headings
             heading = convert_heading(stripped)
             if heading:
                 flush_paragraph()
@@ -86,7 +106,6 @@ def markdown_file(input_file, output_file):
                 output_lines.append(heading)
                 continue
 
-            # Ordered list
             if is_ordered_list_item(line):
                 flush_paragraph()
                 if not in_ordered_list:
@@ -99,7 +118,6 @@ def markdown_file(input_file, output_file):
                 output_lines.append(f"<li>{parse(item)}</li>")
                 continue
 
-            # Unordered list
             if is_unordered_list_item(line):
                 flush_paragraph()
                 if not in_unordered_list:
@@ -112,10 +130,9 @@ def markdown_file(input_file, output_file):
                 output_lines.append(f"<li>{parse(item)}</li>")
                 continue
 
-            # Regular paragraph content
+            # Regular paragraph line
             paragraph_buffer.append(stripped)
 
-        # Final flush
         flush_paragraph()
         if in_ordered_list:
             output_lines.append("</ol>")
