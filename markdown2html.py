@@ -27,7 +27,7 @@ def convert_heading(line):
         level = len(match.group(1))
         text = parse_inline_formatting(match.group(2).strip())
         return f"<h{level}>{text}</h{level}>"
-    return None 
+    return None
 
 def is_ordered_list_item(line):
     return re.match(r'^\s*\*\s+.+', line)
@@ -125,7 +125,7 @@ def markdown_file(input_file, output_file):
     except FileNotFoundError:
         sys.stderr.write(f"Missing {input_file}\n")
         sys.exit(1) 
-        
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
