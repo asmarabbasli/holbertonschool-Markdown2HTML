@@ -3,7 +3,8 @@
 markdown2html.py
 
 Markdown to HTML converter with support for headings,
-paragraphs, ordered lists (*), and unordered lists (-).
+paragraphs, ordered lists (*), unordered lists (-),
+bold (**text**) and emphasis (__text__).
 
 Usage: ./markdown2html.py README.md README.html
 """
@@ -11,23 +12,26 @@ Usage: ./markdown2html.py README.md README.html
 import sys
 import re
 
+def parse_inline_formatting(text):
+    # Bold (**text**)
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # Emphasis (__text__)
+    text = re.sub(r'__(.*?)__', r'<em>\1</em>', text)
+    return text
 
 def convert_heading(line):
     match = re.match(r'^(#{1,6})\s+(.*)', line)
     if match:
         level = len(match.group(1))
-        text = match.group(2).strip()
+        text = parse_inline_formatting(match.group(2).strip())
         return f"<h{level}>{text}</h{level}>"
     return None
-
 
 def is_ordered_list_item(line):
     return re.match(r'^\s*\*\s+.+', line)
 
-
 def is_unordered_list_item(line):
     return re.match(r'^\s*-\s+.+', line)
-
 
 def markdown_file(input_file, output_file):
     try:
@@ -43,16 +47,17 @@ def markdown_file(input_file, output_file):
             if paragraph_buffer:
                 output_lines.append("<p>")
                 for i, line in enumerate(paragraph_buffer):
+                    formatted = parse_inline_formatting(line)
                     if i > 0:
                         output_lines.append("<br/>")
-                    output_lines.append(line)
+                    output_lines.append(formatted)
                 output_lines.append("</p>")
                 paragraph_buffer.clear()
 
         for line in lines:
             stripped = line.strip()
 
-            # Close lists on blank lines
+            # Blank line: flush and close any lists
             if not stripped:
                 flush_paragraph()
                 if in_ordered_list:
@@ -76,7 +81,7 @@ def markdown_file(input_file, output_file):
                 output_lines.append(heading)
                 continue
 
-            # Ordered list item (*)
+            # Ordered list
             if is_ordered_list_item(line):
                 flush_paragraph()
                 if not in_ordered_list:
@@ -86,10 +91,10 @@ def markdown_file(input_file, output_file):
                     output_lines.append("<ol>")
                     in_ordered_list = True
                 item = re.sub(r'^\s*\*\s+', '', line).strip()
-                output_lines.append(f"<li>{item}</li>")
+                output_lines.append(f"<li>{parse_inline_formatting(item)}</li>")
                 continue
 
-            # Unordered list item (-)
+            # Unordered list
             if is_unordered_list_item(line):
                 flush_paragraph()
                 if not in_unordered_list:
@@ -99,10 +104,10 @@ def markdown_file(input_file, output_file):
                     output_lines.append("<ul>")
                     in_unordered_list = True
                 item = re.sub(r'^\s*-\s+', '', line).strip()
-                output_lines.append(f"<li>{item}</li>")
+                output_lines.append(f"<li>{parse_inline_formatting(item)}</li>")
                 continue
 
-            # Collect for paragraph
+            # Regular paragraph content
             paragraph_buffer.append(stripped)
 
         # Final flush
@@ -118,7 +123,6 @@ def markdown_file(input_file, output_file):
     except FileNotFoundError:
         sys.stderr.write(f"Missing {input_file}\n")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
