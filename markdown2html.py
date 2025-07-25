@@ -2,8 +2,8 @@
 """
 markdown2html.py
 
-Markdown to HTML converter with support for headings, paragraphs,
-ordered lists (*), and unordered lists (-).
+Markdown to HTML converter with support for headings,
+paragraphs, ordered lists (*), and unordered lists (-).
 
 Usage: ./markdown2html.py README.md README.html
 """
@@ -13,7 +13,6 @@ import re
 
 
 def convert_heading(line):
-    """Convert Markdown headings (#) to HTML <h1> to <h6>."""
     match = re.match(r'^(#{1,6})\s+(.*)', line)
     if match:
         level = len(match.group(1))
@@ -42,7 +41,7 @@ def markdown_file(input_file, output_file):
         for line in lines:
             stripped = line.strip()
 
-            # Blank line closes any open list
+            # Close lists on blank lines
             if not stripped:
                 if in_ordered_list:
                     output_lines.append("</ol>")
@@ -76,7 +75,7 @@ def markdown_file(input_file, output_file):
                 output_lines.append(f"<li>{item}</li>")
                 continue
 
-            # Close any open list before paragraph/heading
+            # Close any open list before non-list content
             if in_ordered_list:
                 output_lines.append("</ol>")
                 in_ordered_list = False
@@ -91,7 +90,7 @@ def markdown_file(input_file, output_file):
             else:
                 output_lines.append(f"<p>{stripped}</p>")
 
-        # Close lists if still open
+        # Final cleanup: close any open lists
         if in_ordered_list:
             output_lines.append("</ol>")
         if in_unordered_list:
