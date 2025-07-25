@@ -2,7 +2,7 @@
 """
 markdown2html.py
 
-Markdown to HTML converter with support for headings, paragraphs, 
+Markdown to HTML converter with support for headings, paragraphs,
 ordered lists (*), and unordered lists (-).
 
 Usage: ./markdown2html.py README.md README.html
