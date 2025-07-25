@@ -13,7 +13,7 @@ import sys
 import re
 
 
-def parse_inline_formatting(text):
+def parse(text):
     # Bold (**text**)
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
     # Emphasis (__text__)
@@ -25,7 +25,7 @@ def convert_heading(line):
     match = re.match(r'^(#{1,6})\s+(.*)', line)
     if match:
         level = len(match.group(1))
-        text = parse_inline_formatting(match.group(2).strip())
+        text = parse(match.group(2).strip())
         return f"<h{level}>{text}</h{level}>"
     return None
 
@@ -34,7 +34,7 @@ def is_ordered_list_item(line):
     return re.match(r'^\s*\*\s+.+', line)
 
 
-def is_unordered_list_item(line): 
+def is_unordered_list_item(line):
     return re.match(r'^\s*-\s+.+', line)
 
 
@@ -52,7 +52,7 @@ def markdown_file(input_file, output_file):
             if paragraph_buffer:
                 output_lines.append("<p>")
                 for i, line in enumerate(paragraph_buffer):
-                    formatted = parse_inline_formatting(line)
+                    formatted = parse(line)
                     if i > 0:
                         output_lines.append("<br/>")
                     output_lines.append(formatted)
@@ -96,7 +96,7 @@ def markdown_file(input_file, output_file):
                     output_lines.append("<ol>")
                     in_ordered_list = True
                 item = re.sub(r'^\s*\*\s+', '', line).strip()
-                output_lines.append(f"<li>{parse_inline_formatting(item)}</li>")
+                output_lines.append(f"<li>{parse(item)}</li>")
                 continue
 
             # Unordered list
@@ -109,7 +109,7 @@ def markdown_file(input_file, output_file):
                     output_lines.append("<ul>")
                     in_unordered_list = True
                 item = re.sub(r'^\s*-\s+', '', line).strip()
-                output_lines.append(f"<li>{parse_inline_formatting(item)}</li>")
+                output_lines.append(f"<li>{parse(item)}</li>")
                 continue
 
             # Regular paragraph content
@@ -127,7 +127,7 @@ def markdown_file(input_file, output_file):
 
     except FileNotFoundError:
         sys.stderr.write(f"Missing {input_file}\n")
-        sys.exit(1) 
+        sys.exit(1)
 
 
 if __name__ == "__main__":
