@@ -29,11 +29,14 @@ def convert_heading(line):
         return f"<h{level}>{text}</h{level}>"
     return None
 
+
 def is_ordered_list_item(line):
     return re.match(r'^\s*\*\s+.+', line)
 
+
 def is_unordered_list_item(line): 
     return re.match(r'^\s*-\s+.+', line)
+
 
 def markdown_file(input_file, output_file):
     try:
